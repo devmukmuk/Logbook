@@ -12,7 +12,7 @@ starts, because they decide the storage format.
   instrument, simulator), landings (day/night), approaches, remarks.
 - Aircraft list with category/class, multi-engine, turbine, complex/high-performance.
 - Totals and rolling windows (last 90 days, 6 months, 12 months).
-- Storage format: see Q1.
+- Storage: each record is the original file plus a JSON sidecar; a rebuildable SQLite index on top; one or many Logbooks (like DA archives), consolidated for reports. See [DATA-STORAGE.md](DATA-STORAGE.md).
 
 ## IMP: Import tools
 
@@ -58,8 +58,8 @@ starts, because they decide the storage format.
 
 | # | Question | Decides |
 |---|---|---|
-| Q1 | Storage format: one JSON file, CSV, or SQLite? | DATA model and every importer |
+| Q1 | Storage format: one JSON file, CSV, or SQLite? **Proposed: file + JSON sidecar, SQLite index, PDF first, [DATA-STORAGE.md](DATA-STORAGE.md).** | DATA model and every importer |
 | Q2 | Where do your existing hours live today (ForeFlight, LogTen, MyFlightbook, a spreadsheet, paper)? Which import comes first? | IMP order |
 | Q3 | Which military service(s) and record types need converting (for example an Air Force ARMS or Navy NATOPS logbook printout)? | CONV rules |
-| Q4 | Should the data folder default to a vault location instead of `data/` in the repo? | config default |
+| Q4 | Should the data folder default to a vault location instead of `data/` in the repo? **Proposed: yes, via `LOGBOOK_DATA_DIR`, [DATA-STORAGE.md](DATA-STORAGE.md#where-the-data-lives).** | config default |
 | Q5 | Which job applications or resume formats matter most (a specific airline portal, generic resume)? | CAR outputs |
