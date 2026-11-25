@@ -16,8 +16,9 @@ starts, because they decide the storage format.
 
 ## IMP: Import tools
 
-- Import from existing logbook exports into `data/`, keeping the raw file in
-  `data/imports/`.
+- `logbook survey` sorts the source files in `E:\logbooks` into intake-ready groups.
+- Importers for airline monthly flying summaries and schedules (company PDFs),
+  military flying summaries and AFTO Form 781s (scanned PDFs).
 - Column mapping, duplicate detection, and `--dry-run` that reports what
   would change.
 
@@ -58,8 +59,8 @@ starts, because they decide the storage format.
 
 | # | Question | Decides |
 |---|---|---|
-| Q1 | Storage format: one JSON file, CSV, or SQLite? **Proposed: file + JSON sidecar, SQLite index, PDF first, [DATA-STORAGE.md](DATA-STORAGE.md).** | DATA model and every importer |
-| Q2 | Where do your existing hours live today (ForeFlight, LogTen, MyFlightbook, a spreadsheet, paper)? Which import comes first? | IMP order |
-| Q3 | Which military service(s) and record types need converting (for example an Air Force ARMS or Navy NATOPS logbook printout)? | CONV rules |
-| Q4 | Should the data folder default to a vault location instead of `data/` in the repo? **Proposed: yes, via `LOGBOOK_DATA_DIR`, [DATA-STORAGE.md](DATA-STORAGE.md#where-the-data-lives).** | config default |
+| Q1 | Storage format: one JSON file, CSV, or SQLite? **Decided: file + JSON sidecar, SQLite index, PDF first ([DATA-STORAGE.md](DATA-STORAGE.md)).** | DATA model and every importer |
+| Q2 | Where do your existing hours live today (ForeFlight, LogTen, MyFlightbook, a spreadsheet, paper)? Which import comes first? **Decided: airline monthly flying summaries, then schedules, then military summaries and AFTO 781s ([First importers](DATA-STORAGE.md#first-importers-d6)).** | IMP order |
+| Q3 | Which military service(s) and record types need converting (for example an Air Force ARMS or Navy NATOPS logbook printout)? **Partly decided: USAF AFTO Form 781s and flying summaries (scanned PDF); conversion rules still to define.** | CONV rules |
+| Q4 | Should the data folder default to a vault location instead of `data/` in the repo? **Decided: no vault; Logbooks live unencrypted under the project's git-ignored `data/` ([DATA-STORAGE.md](DATA-STORAGE.md#where-the-data-lives)).** | config default |
 | Q5 | Which job applications or resume formats matter most (a specific airline portal, generic resume)? | CAR outputs |
