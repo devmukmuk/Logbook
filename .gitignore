@@ -1,0 +1,44 @@
+# --------------------------------------------------
+# PERSONAL DATA -- this repository is PUBLIC.
+# Logbook entries, imports, medicals, certificates and resumes must
+# NEVER be committed. tools/git-hooks/check-data-files.sh enforces it.
+# --------------------------------------------------
+/data/
+/imports/
+/exports/
+/logs/
+.env*
+!.env.example
+
+# --------------------------------------------------
+# Python
+# --------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+*.egg-info/
+
+# --------------------------------------------------
+# Virtual environments
+# --------------------------------------------------
+.venv/
+venv/
+
+# --------------------------------------------------
+# Test / coverage
+# --------------------------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --------------------------------------------------
+# Editor / OS / local tool state
+# --------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.claude/scheduled_tasks.lock
+.claude/settings.local.json

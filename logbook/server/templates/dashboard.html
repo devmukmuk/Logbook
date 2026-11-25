@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Logbook</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Logbook</h1>
+    <span class="muted">v{{ version }}</span>
+  </header>
+
+  <main>
+    <section class="tiles">
+      <div class="tile"><span class="label">Total time</span><span class="value">{{ "%.1f"|format(summary.totals.total_time) }}</span></div>
+      <div class="tile"><span class="label">PIC</span><span class="value">{{ "%.1f"|format(summary.totals.pic) }}</span></div>
+      <div class="tile"><span class="label">Cross-country</span><span class="value">{{ "%.1f"|format(summary.totals.cross_country) }}</span></div>
+      <div class="tile"><span class="label">Night</span><span class="value">{{ "%.1f"|format(summary.totals.night) }}</span></div>
+      <div class="tile"><span class="label">Instrument</span><span class="value">{{ "%.1f"|format(summary.totals.instrument) }}</span></div>
+    </section>
+
+    {% if not summary.has_data %}
+    <section class="notice">
+      <h2>No logbook data yet</h2>
+      <p>Data folder: <code>{{ summary.data_dir }}</code></p>
+      <p class="muted">Importers arrive with the IMP epic. Until then the totals above stay at zero.</p>
+    </section>
+    {% endif %}
+  </main>
+
+  <footer class="muted">Local only &middot; <a href="/api/docs">API</a></footer>
+</body>
+</html>

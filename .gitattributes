@@ -1,0 +1,9 @@
+# Normalize line endings; shell scripts must stay LF regardless of platform
+# autocrlf settings, or the #!/bin/sh shebang breaks on checkout.
+* text=auto eol=lf
+
+tools/git-hooks/* text eol=lf
+*.sh text eol=lf
+
+*.png binary
+*.ico binary

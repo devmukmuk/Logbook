@@ -1,0 +1,28 @@
+#!/bin/sh
+# Runs before every commit: refuses to commit personal data (data/, imports/, exports/, logs/,
+# spreadsheets, resumes, ...) -- see check-data-files.sh, which lives beside this hook.
+#
+# Direct commits to main are blocked by commit-msg.
+#
+# Install into a clone with:
+#   tools/git-hooks/install.sh
+#
+# (.git/hooks/ isn't tracked by git, so this has to be copied in per-clone.)
+#
+# Merge commits made by `git merge` do not run this hook, so PostMerge's
+# `git pull origin main` is unaffected.
+#
+# Emergency bypass (repository owner only): git commit --no-verify
+
+checker="$(dirname "$0")/check-data-files.sh"
+if [ ! -f "$checker" ]; then
+    echo "ERROR: check-data-files.sh is missing next to this hook." >&2
+    echo "Run tools/git-hooks/install.sh to reinstall the hooks." >&2
+    exit 1
+fi
+
+# Only files being added, copied, modified or renamed are checked, so removing a data file that was
+# committed by mistake is always allowed.
+git -c core.quotepath=false diff --cached --name-only --diff-filter=ACMR | sh "$checker" || exit 1
+
+exit 0

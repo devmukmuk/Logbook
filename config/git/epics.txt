@@ -1,0 +1,24 @@
+# Epic registry for Logbook.
+#
+# One code per line, uppercase, no spaces. Read by:
+#   - tools/git-hooks/commit-msg  (commit subject validation)
+#   - tools/git-hooks/pre-push    (branch name validation)
+#   - tools/epic-labels.sh        (GitHub labels: Epic-<NN>-<CODE>)
+#   - docs/epics/README.md        (human-readable descriptions)
+#
+# ORDER MATTERS for labels: the line position is the label number
+# (first code = Epic-01-<CODE>). Append new epics at the end; never reorder
+# or delete a code that issues already use.
+#
+# To add an epic: append a code here, add a row to docs/epics/README.md,
+# then run tools/epic-labels.sh.
+
+DATA
+IMP
+CONV
+CERT
+CAR
+DASH
+CLI
+DEV
+DOC

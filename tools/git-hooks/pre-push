@@ -1,0 +1,100 @@
+#!/bin/sh
+# Enforces two push rules:
+#
+#   1. Nothing is pushed to main/master directly (PRs only).
+#   2. The current branch name matches:
+#
+#        <type>/<issue>-<epic>-<short-description>
+#
+# Examples:
+#   feat/12-DATA-add-flight-entry-model
+#   fix/15-IMP-handle-blank-remarks
+#   docs/18-DOC-describe-data-folder
+#
+# Epic registry:
+#   config/git/epics.txt
+#
+# Install into a clone with:
+#   tools/git-hooks/install.sh
+#
+# (.git/hooks/ isn't tracked by git, so this has to be copied in per-clone.)
+#
+# Emergency bypass (repo owner only): git push --no-verify
+
+# --- Rule 1: never push to main -----------------------------------------
+# git feeds one line per ref on stdin: <local ref> <local sha> <remote ref> <remote sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+    case "$remote_ref" in
+        refs/heads/main|refs/heads/master)
+            echo "Pushing to '${remote_ref#refs/heads/}' is not allowed." >&2
+            echo "Push a branch and open a PR instead (see tools/dev-docs/FINISHIT.md)." >&2
+            exit 1
+            ;;
+    esac
+done
+
+# --- Rule 2: branch name convention -----------------------------------
+# Get current branch
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+# Detached HEAD (common in CI)
+if [ -z "$branch" ]; then
+    exit 0
+fi
+
+# Sitting on main (e.g. PostMerge) while pushing a named branch is fine;
+# rule 1 above already guards the destination.
+case "$branch" in
+    main|master|develop)
+        exit 0
+        ;;
+esac
+
+# Find repository root
+repo_root=$(git rev-parse --show-toplevel)
+
+# Epic registry
+epic_file="$repo_root/config/git/epics.txt"
+
+if [ ! -f "$epic_file" ]; then
+    echo "ERROR: Missing epic registry: $epic_file" >&2
+    exit 1
+fi
+
+# Build Epic regex from registry file
+epics=$(grep -v '^#' "$epic_file" | grep -v '^$' | paste -sd "|" -)
+
+if [ -z "$epics" ]; then
+    echo "ERROR: No epics defined in $epic_file" >&2
+    exit 1
+fi
+
+# Branch types
+types="feat|fix|docs|test|refactor|perf|build|chore"
+
+# Validate:
+# type / issue-EPIC-description
+pattern="^($types)/[0-9]+-($epics)-[a-z0-9-]+$"
+
+if ! printf '%s' "$branch" | grep -qE "$pattern"; then
+    echo "Branch name does not match convention:" >&2
+    echo "" >&2
+    echo "  <type>/<issue>-<EPIC>-<description>" >&2
+    echo "" >&2
+    echo "Examples:" >&2
+    echo "  feat/12-DATA-add-flight-entry-model" >&2
+    echo "  fix/15-IMP-handle-blank-remarks" >&2
+    echo "  docs/18-DOC-describe-data-folder" >&2
+    echo "" >&2
+    echo "Allowed types:" >&2
+    echo "  feat fix docs test refactor perf build chore" >&2
+    echo "" >&2
+    echo "Allowed epics:" >&2
+    echo "  $(grep -v '^#' "$epic_file" | grep -v '^$' | paste -sd "|" -)" >&2
+    echo "" >&2
+    echo "Current branch:" >&2
+    echo "  $branch" >&2
+    exit 1
+fi
+
+exit 0
