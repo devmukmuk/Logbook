@@ -8,7 +8,7 @@ PR as the code.
 |---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Accepted | Stack, repository layout, data folder, server and CLI structure |
 | [FEATURES.md](FEATURES.md) | Draft | Intended features per epic, open questions |
-| [DATA-STORAGE.md](DATA-STORAGE.md) | Proposed | File + JSON sidecar per record, rebuildable SQLite index, intake, sensitive data |
+| [DATA-STORAGE.md](DATA-STORAGE.md) | Proposed | Logbooks (one or many, consolidated), file + JSON sidecar per record, rebuildable SQLite index, intake |
 
 New design docs: add a file here named for the topic (for example
 `DATA-MODEL.md` or `IMPORT-FOREFLIGHT.md`), add a row to the table above, and

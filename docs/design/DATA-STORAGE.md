@@ -21,7 +21,7 @@ Some of these become **structured data** (flights, credentials with expiry dates
 
 ## Design in one paragraph
 
-Each record is **a file plus a JSON sidecar** beside it (`<file>.meta.json`), the same pattern as DigitalArchive ([its SIDECAR.md](https://github.com/devmukmuk/DigitalArchive/blob/main/docs/SIDECAR.md)). The original file is never changed. The sidecar holds everything Logbook knows about that file: what it is, its dates, the credential it proves, the flights read from it and your corrections. A **SQLite index** is built from the sidecars for search, totals and the dashboard. It holds nothing that isn't in a sidecar, so it can be deleted and rebuilt at any time. **PDF first**: phase 1 handles PDFs only; other formats follow with the same pattern. The whole data folder lives **inside the VeraCrypt vault**.
+Each record is **a file plus a JSON sidecar** beside it (`<file>.meta.json`), the same pattern as DigitalArchive ([its SIDECAR.md](https://github.com/devmukmuk/DigitalArchive/blob/main/docs/SIDECAR.md)). The original file is never changed. The sidecar holds everything Logbook knows about that file: what it is, its dates, the credential it proves, the flights read from it and your corrections. A **SQLite index** is built from the sidecars for search, totals and the dashboard. It holds nothing that isn't in a sidecar, so it can be deleted and rebuilt at any time. These files, sidecars and index make up a **Logbook**: a self-contained folder, just as DigitalArchive has an *archive*. You can have several Logbooks, run tools and reports on one at a time, or **consolidate** several into one set of totals. **PDF first**: phase 1 handles PDFs only; other formats follow with the same pattern. Logbooks live **inside the VeraCrypt vault**.
 
 ## Principles
 
@@ -33,12 +33,57 @@ Each record is **a file plus a JSON sidecar** beside it (`<file>.meta.json`), th
 6. **Staged extraction, your edits win.** Extracted rows start as `pending` and become `accepted` after review. Anything you set by hand (the `user` block, corrected flight fields) is never overwritten by a re-run.
 7. **Encrypted at rest, plain while open.** No app-level crypto (same decision as Vault and SimplePass): the vault container is the protection.
 
+## Logbooks: one or many
+
+A **Logbook** is a folder holding a `logbook.yaml`; that folder is the Logbook's root, the way `da-archive.yaml` makes a DigitalArchive archive. Everything for that Logbook (documents, sidecars, index, logs) lives under its root, so it can be copied, backed up or retired as one unit.
+
+Ways you might split them (your choice, see D7): one per career phase (`usaf`, `airline`), one per source (military records vs civil logbooks), or a single Logbook for everything. A scratch Logbook is also handy for trying an importer before running it on the real one.
+
+**`logbook.yaml`** (small, hand-editable):
+
+```yaml
+name: usaf                    # short id used on the command line
+title: USAF flying, 1998-2014
+owner: <pilot name>
+created: 2026-11-25
+categories: [...]             # optional: override or extend the default category list
+```
+
+**Which Logbook a command works on**, first match wins (same order as DA):
+
+1. `--logbook <name or path>` on the command line
+2. `LOGBOOK_DIR` environment variable (tests point it at a temp folder)
+3. the current folder, or a parent of it, that holds a `logbook.yaml`
+4. otherwise: stop and list the registered Logbooks, rather than guess
+
+**Registry:** `%LOCALAPPDATA%\Logbook\logbooks.json` lists every Logbook this computer knows (name, path, title, last used), written by `logbook new` and refreshed on every command, like DA's `archives.json`. `logbook list` shows them and whether each is reachable (a Logbook in an unmounted vault shows as not connected). A missing root is never recreated silently.
+
+**Commands:**
+
+| Command | Does |
+|---|---|
+| `logbook new <path> --name <name>` | create a Logbook folder (`logbook.yaml`, `documents/`, `inbox/`, ...) and register it |
+| `logbook list` | registered Logbooks, connected or not |
+| `logbook --logbook usaf <tool> ...` | run any tool on one Logbook |
+| `logbook --logbooks usaf,airline <report>` / `--all` | run a read-only report on several Logbooks consolidated |
+| `logbook serve` | dashboard with a Logbook picker, including "All (consolidated)" |
+
+## Consolidation
+
+Reports and the dashboard can read several Logbooks at once; tools that **change** data (intake, importers, review) always work on exactly one.
+
+- Consolidation reads each Logbook's own index (SQLite `ATTACH`, read-only) and combines the rows. It never copies files or sidecars between Logbooks and never writes to them.
+- Every consolidated row keeps its Logbook name, so a total can be broken down by Logbook and any number still opens its source document.
+- **Duplicates across Logbooks:** the same document (same SHA-256) filed in two Logbooks counts once. Flights read from *different* documents that look like the same flight (same date, aircraft and times, for example a military record and a later civil logbook that copied it) are flagged in a "possible duplicates" list for you to settle, never dropped automatically. Your decision goes in the sidecar of the flight you exclude (`status: duplicate`, pointing at the one kept).
+- A Logbook that isn't connected is reported as missing from the consolidated result, never silently left out of the totals.
+
 ## Where the data lives
 
-The data folder goes inside the mounted vault, set with `LOGBOOK_DATA_DIR` (for example `V:\logbook\` if the vault mounts as `V:`). The repo's `data/` folder stays the default for tests and development, with invented data only.
+Each Logbook's root goes inside the mounted vault (for example `V:\logbooks\usaf\` if the vault mounts as `V:`). The repo's `data/` folder is only a development Logbook with invented data.
 
 ```
-<LOGBOOK_DATA_DIR>/
+<logbook root>/
+  logbook.yaml                     marks the folder as a Logbook
   documents/                       originals + sidecars, read-only after intake
     military-records/
       2014-06-30_c17-monthly-flight-record_3fa9c2e1.pdf
@@ -62,7 +107,7 @@ The data folder goes inside the mounted vault, set with `LOGBOOK_DATA_DIR` (for 
 
 **Stored filename:** `<doc-date>_<slug>_<hash8>.<ext>`. The date sorts the folder in Explorer, the slug says what it is, and the first 8 hex digits of the SHA-256 make the name unique. The original filename and path are kept in the sidecar.
 
-`imports/` in the current `config.py` becomes `inbox/`, and `backups/` and `.logbook/` are added when this is implemented.
+The current `config.py` (one `data/` folder from `LOGBOOK_DATA_DIR`, with `imports/`) is replaced by Logbook selection as above: `LOGBOOK_DATA_DIR` becomes `LOGBOOK_DIR`, `imports/` becomes `inbox/`, and `backups/` and `.logbook/` are added.
 
 ## The sidecar (schema 1)
 
@@ -109,7 +154,7 @@ Raising the schema version follows DigitalArchive's rule: bump the version, teac
 
 ## The index (SQLite)
 
-`.logbook/logbook.sqlite`, built by `logbook index` from every sidecar (incremental: a sidecar whose size and mtime are unchanged is skipped; `--rebuild` starts from empty). Never edited directly; every command that changes facts writes the sidecar first, then updates the index.
+One per Logbook: `<root>/.logbook/logbook.sqlite`, built by `logbook index` from every sidecar (incremental: a sidecar whose size and mtime are unchanged is skipped; `--rebuild` starts from empty). Never edited directly; every command that changes facts writes the sidecar first, then updates the index.
 
 ```
 documents        sha256 PK, path, sidecar_path, category, title, doc_date, pages,
@@ -152,25 +197,28 @@ Reading *structured* data (flights, credentials) is a separate per-importer step
 - The vault already gives off-machine copies (`E:\workflows\05-VAULT.md`: dismount, copy to Texas/Dale, verify). Because the files and sidecars are the data, that procedure backs up everything Logbook has.
 - Before a bulk change (`sidecar upgrade`, re-running an importer over many documents), the sidecars it touches are copied to `backups/<timestamp>-<command>/`, with a `--restore` option, as in DigitalArchive.
 - The index needs no backup: rebuild it.
-- `logbook` refuses to run if `LOGBOOK_DATA_DIR` is set but the folder is missing (vault not mounted), rather than silently creating an empty data folder on another drive.
+- `logbook` refuses to run on a Logbook whose root is missing (vault not mounted), rather than silently creating an empty one on another drive.
 
 ## Implementation order (follow-up issues)
 
-1. **DATA**: data folder layout (`inbox/`, `backups/`, `.logbook/`), refuse-if-missing, the `SidecarService` (load, save, update block, history, atomic write) with schema 1, JSON-lines logging.
-2. **DATA**: `logbook intake` for PDFs: hash, dedupe, file, read-only, sidecar.
-3. **DATA**: `logbook index [--rebuild]` and the documents table; dashboard Documents page listing them.
-4. **DATA**: text extraction + OCR + SSN masking, `document_pages` + FTS5, `logbook search`.
-5. **CERT**: `credential` block, entry from CLI and dashboard, expiry tiles.
-6. **IMP + CONV**: first flight importer for the most important PDF record type, pending → accepted review, then the military conversion rules.
-7. **IMP**: CSV/XLS(X) logbook exports; DOCX resumes.
+1. **DATA**: Logbooks: `logbook.yaml`, `logbook new`, selection order (`--logbook`, `LOGBOOK_DIR`, cwd), registry + `logbook list`, refuse-if-missing, JSON-lines logging.
+2. **DATA**: the `SidecarService` (load, save, update block, history, atomic write) with schema 1.
+3. **DATA**: `logbook intake` for PDFs: hash, dedupe, file, read-only, sidecar.
+4. **DATA**: `logbook index [--rebuild]` and the documents table; dashboard Documents page with the Logbook picker.
+5. **DATA**: text extraction + OCR + SSN masking, `document_pages` + FTS5, `logbook search`.
+6. **CERT**: `credential` block, entry from CLI and dashboard, expiry tiles.
+7. **IMP + CONV**: first flight importer for the most important PDF record type, pending → accepted review, then the military conversion rules.
+8. **DATA**: consolidation: `--logbooks` / `--all` for reports, "All" on the dashboard, cross-Logbook duplicate list.
+9. **IMP**: CSV/XLS(X) logbook exports; DOCX resumes.
 
 ## Decisions needed
 
 | # | Decision | Recommendation |
 |---|---|---|
-| D1 | Data folder inside the VeraCrypt vault? Which drive letter does it mount as? | Yes; set `LOGBOOK_DATA_DIR` to `<vault>:\logbook\` |
+| D1 | Logbooks inside the VeraCrypt vault? Which drive letter does it mount as? | Yes; Logbook roots under `<vault>:\logbooks\` |
 | D2 | Existing files: copy them in (originals stay where they are) or move them? | Copy. Retire the old copies by hand once you trust the catalog. |
 | D3 | Are the ten categories right? Anything missing (simulator records, flight school records, awards)? | Start with these; `other/` catches the rest |
 | D4 | Mask SSNs in the searchable text? | Yes |
 | D5 | Where do the existing files live today, roughly how many, and how many are scans versus text PDFs? | Decides how much OCR work step 4 is |
 | D6 | Which PDF record type should the first flight importer read (for example a specific military flight-record printout)? | The one holding the most hours |
+| D7 | How to split into Logbooks: one per career phase, one per source, or one for everything? Where do non-flight documents (medical, FAA certs, resumes) go when there are several? | One per career phase, plus a `career` Logbook for certificates, medicals, resumes and work documents; consolidate for totals |

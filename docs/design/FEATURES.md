@@ -12,7 +12,7 @@ starts, because they decide the storage format.
   instrument, simulator), landings (day/night), approaches, remarks.
 - Aircraft list with category/class, multi-engine, turbine, complex/high-performance.
 - Totals and rolling windows (last 90 days, 6 months, 12 months).
-- Storage: each record is the original file plus a JSON sidecar; a rebuildable SQLite index on top. See [DATA-STORAGE.md](DATA-STORAGE.md).
+- Storage: each record is the original file plus a JSON sidecar; a rebuildable SQLite index on top; one or many Logbooks (like DA archives), consolidated for reports. See [DATA-STORAGE.md](DATA-STORAGE.md).
 
 ## IMP: Import tools
 
